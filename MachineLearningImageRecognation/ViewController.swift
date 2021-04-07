@@ -9,12 +9,12 @@ import UIKit
 import CoreML
 import Vision
 
-class ViewController: UIViewController, UIImagePickerControllerDelegate , UINavigationControllerDelegate {
+class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavigationControllerDelegate  {
 
     @IBOutlet weak var imageView: UIImageView!
     @IBOutlet weak var resultsLabel: UILabel!
     
-    var chosenImage : CIImage
+    var chosenImage = CIImage()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -41,6 +41,33 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate , UINavi
     
     func recognizeImage(image : CIImage) {
         
+        if let model = try?  VNCoreMLModel(for: MobileNetV2().model) {
+            let request = VNCoreMLRequest(model: model) { (vnRequest, error) in
+                if let results = vnRequest.results as? [VNClassificationObservation] {
+                    if results.count > 0 {
+                        let topResult = results.first
+                        DispatchQueue.main.async {
+                            let confidenceLevel = (topResult?.confidence ?? 0) * 100
+                            let rounded = Int(confidenceLevel * 100) / 100
+                            self.resultsLabel.text = "\(rounded)% it's \(topResult!.identifier)"
+                        }
+                    }
+                    
+                }
+                
+                
+            }
+            let handler = VNImageRequestHandler (ciImage: image)
+            DispatchQueue.global(qos: .userInteractive).async {
+                do {
+                    try handler.perform([request])
+
+                } catch {
+                    print("Error")
+                }
+            }
+        }
+       
     }
     
     
